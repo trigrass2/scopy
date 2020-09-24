@@ -56,6 +56,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <QDebug>
+#include <QGridLayout>
 
 using namespace adiscope;
 
@@ -507,7 +508,7 @@ void PlotAxisConfiguration::setMouseGesturesEnabled(bool en)
  * DisplayPlot class
  */
 
-DisplayPlot::DisplayPlot(int nplots, QWidget* parent,  bool isdBgraph ,
+DisplayPlot::DisplayPlot(int nplots, QWidget* parent,  bool isdBgraph,
              unsigned int xNumDivs, unsigned int yNumDivs)
   : PrintablePlot(parent), d_nplots(nplots), d_stop(false),
     d_coloredLabels(false), d_mouseGesturesEnabled(false),
@@ -611,6 +612,8 @@ DisplayPlot::DisplayPlot(int nplots, QWidget* parent,  bool isdBgraph ,
   /* Adjacent areas */
   d_bottomHandlesArea = new HorizHandlesArea(this->canvas());
   d_rightHandlesArea = new VertHandlesArea(this->canvas());
+  d_topHandlesArea = new HorizHandlesArea(this->canvas());
+  d_leftHandlesArea = new VertHandlesArea(this->canvas());
 
   d_bottomHandlesArea->setMinimumHeight(50);
   d_rightHandlesArea->setMinimumWidth(50);
@@ -618,7 +621,7 @@ DisplayPlot::DisplayPlot(int nplots, QWidget* parent,  bool isdBgraph ,
   d_rightHandlesArea->setLargestChildHeight(60);
   d_rightHandlesArea->setMinimumHeight(this->minimumHeight());
 
-  formatter = static_cast<PrefixFormatter *>(new MetricPrefixFormatter);
+  d_formatter = static_cast<PrefixFormatter *>(new MetricPrefixFormatter);
 
   markerIntersection1 = new QwtPlotMarker();
   markerIntersection2 = new QwtPlotMarker();
@@ -691,11 +694,30 @@ DisplayPlot::~DisplayPlot()
         delete *it;
     }
 
-    delete d_grid;
     delete markerIntersection1;
     delete markerIntersection2;
     delete horizAxis;
 }
+
+QWidget* DisplayPlot::getPlotwithElements()
+{
+    QWidget* widget = new QWidget();
+    QGridLayout *gridplot = new QGridLayout();
+
+    gridplot->addWidget(topHandlesArea(), 0, 0, 1, 3);
+    gridplot->addWidget(leftHandlesArea(), 0, 0, 3, 1);
+    gridplot->addWidget(this, 1, 1, 1, 1);
+    gridplot->addWidget(rightHandlesArea(), 0, 2, 3, 1);
+    gridplot->addWidget(bottomHandlesArea(), 2, 0, 1, 3);
+
+    gridplot->setVerticalSpacing(0);
+    gridplot->setHorizontalSpacing(0);
+    gridplot->setContentsMargins(0, 0, 0, 0);
+    widget->setLayout(gridplot);
+
+    return widget;
+}
+
 
 void DisplayPlot::setupCursors() {
 
@@ -855,6 +877,26 @@ QWidget * DisplayPlot::rightHandlesArea()
     return d_rightHandlesArea;
 }
 
+QWidget * DisplayPlot::leftHandlesArea()
+{
+    return d_leftHandlesArea;
+}
+
+QWidget * DisplayPlot::topHandlesArea()
+{
+    return d_topHandlesArea;
+}
+
+QString DisplayPlot::formatXValue(double value, int precision) const
+{
+    return d_formatter->format(value, d_xAxisUnit, precision);
+}
+
+QString DisplayPlot::formatYValue(double value, int precision) const
+{
+    return d_formatter->format(value, d_yAxisUnit, precision);
+}
+
 void DisplayPlot::onHbar1PixelPosChanged(int pos)
 {
     d_vCursorHandle1->setPositionSilenty(pos);
@@ -887,12 +929,12 @@ void DisplayPlot::onVCursor1Moved(double value)
 {
     QString text;
 
-    text = formatter->format(value, "", 3);
+    text = d_formatter->format(value, "", 3);
     d_cursorReadouts->setTimeCursor1Text(text);
     d_cursorReadoutsText.t1 = text;
 
     double diff = value - d_vBar2->plotCoord().y();
-    text = formatter->format(diff, "", 3);
+    text = d_formatter->format(diff, "", 3);
     d_cursorReadouts->setTimeDeltaText(text);
     d_cursorReadoutsText.tDelta = text;
 
@@ -903,12 +945,12 @@ void DisplayPlot::onVCursor2Moved(double value)
 {
     QString text;
 
-    text = formatter->format(value, "", 3);
+    text = d_formatter->format(value, "", 3);
     d_cursorReadouts->setTimeCursor2Text(text);
     d_cursorReadoutsText.t2 = text;
 
     double diff = d_vBar1->plotCoord().y() - value;
-    text = formatter->format(diff, "", 3);
+    text = d_formatter->format(diff, "", 3);
     d_cursorReadouts->setTimeDeltaText(text);
     d_cursorReadoutsText.tDelta = text;
 
@@ -922,14 +964,14 @@ void DisplayPlot::onHCursor1Moved(double value)
     bool error = false;
 
     value *= d_displayScale;
-    text = formatter->format(value, "", 3);
+    text = d_formatter->format(value, "", 3);
     d_cursorReadouts->setVoltageCursor1Text(error ? "-" : text);
     d_cursorReadoutsText.v1 = error ? "-" : text;
 
     double valueCursor2 = d_hBar2->plotCoord().x();
 
     double diff = value - (valueCursor2 * d_displayScale) ;
-    text = formatter->format(diff, "", 3);
+    text = d_formatter->format(diff, "", 3);
     d_cursorReadouts->setVoltageDeltaText(error ? "-" : text);
     d_cursorReadoutsText.vDelta = error ? "-" : text;
 
@@ -942,14 +984,14 @@ void DisplayPlot::onHCursor2Moved(double value)
     bool error = false;
 
     value *= d_displayScale;
-    text = formatter->format(value, "", 3);
+    text = d_formatter->format(value, "", 3);
     d_cursorReadouts->setVoltageCursor2Text(error ? "-" : text);
     d_cursorReadoutsText.v2 = error ? "-" : text;
 
     double valueCursor1 = d_hBar1->plotCoord().x();
 
     double diff = (valueCursor1 * d_displayScale) - value;
-    text = formatter->format(diff, "", 3);
+    text = d_formatter->format(diff, "", 3);
     d_cursorReadouts->setVoltageDeltaText(error ? "-" : text);
     d_cursorReadoutsText.vDelta = error ? "-" : text;
 

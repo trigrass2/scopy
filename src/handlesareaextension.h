@@ -28,7 +28,6 @@ public:
 	virtual bool draw(QPainter *painter, QWidget *owner) Q_DECL_OVERRIDE;
 };
 
-
 class YLeftRuller: public HandlesAreaExtension {
 public:
     YLeftRuller(QwtPlot *plot);
@@ -44,6 +43,5 @@ public:
 
     virtual bool draw(QPainter *painter, QWidget *owner) Q_DECL_OVERRIDE;
 };
-
 
 #endif // HANDLESAREAEXTENSION_H

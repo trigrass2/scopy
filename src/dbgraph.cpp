@@ -115,7 +115,7 @@ dBgraph::dBgraph(QWidget *parent, bool isdBgraph)
 
 	thickness = 1;
 
-    formatter = static_cast<PrefixFormatter *>(new MetricPrefixFormatter);
+    d_formatter = static_cast<PrefixFormatter *>(new MetricPrefixFormatter);
 
     OscScaleEngine *scaleLeft = new OscScaleEngine;
     setYaxisNumDiv(7);
@@ -124,7 +124,7 @@ dBgraph::dBgraph(QWidget *parent, bool isdBgraph)
                  static_cast<QwtScaleEngine *>(scaleLeft));
     /* draw_x / draw_y: Outmost X / Y scales. Only draw the labels */
 
-    draw_x = new OscScaleDraw(formatter, "Hz");
+    draw_x = new OscScaleDraw(d_formatter, "Hz");
     draw_x->setFloatPrecision(2);
     draw_x->enableComponent(QwtAbstractScaleDraw::Ticks, false);
     draw_x->enableComponent(QwtAbstractScaleDraw::Backbone, false);
@@ -137,17 +137,13 @@ dBgraph::dBgraph(QWidget *parent, bool isdBgraph)
     draw_y->setMinimumExtent(50);
     setAxisScaleDraw(QwtPlot::yLeft, draw_y);
 
-    d_leftHandlesArea = new VertHandlesArea(this->canvas());
     d_leftHandlesArea->setMinimumWidth(60);
     d_leftHandlesArea->setTopPadding(10);
     d_leftHandlesArea->setBottomPadding(0);
     d_leftHandlesArea->setMinimumHeight(this->minimumHeight());
 
-    d_topHandlesArea = new HorizHandlesArea(this->canvas());
     d_topHandlesArea->setMinimumHeight(20);
     d_topHandlesArea->setLargestChildWidth(60);
-    //        d_topHandlesArea->setLeftPadding(70);
-    //        d_topHandlesArea->setRightPadding(80);
 
     useLogFreq(false);
 
@@ -209,7 +205,7 @@ dBgraph::~dBgraph()
 {
 	canvas()->removeEventFilter(d_cursorReadouts);
 	canvas()->removeEventFilter(d_symbolCtrl);
-	delete formatter;
+    delete d_formatter;
 }
 
 void dBgraph::replot()
@@ -236,17 +232,6 @@ void dBgraph::enableYaxisLabels()
     d_leftHandlesArea->installExtension(std::unique_ptr<HandlesAreaExtension>(new YLeftRuller(this)));
 }
 
-
-QWidget * dBgraph::leftHandlesArea()
-{
-    return d_leftHandlesArea;
-}
-
-QWidget * dBgraph::topHandlesArea()
-{
-    return d_topHandlesArea;
-}
-
 void dBgraph::parametersOverrange(bool enable)
 {
     if (enable) {
@@ -255,7 +240,6 @@ void dBgraph::parametersOverrange(bool enable)
         d_plotBar->setPen(QPen(QColor(211, 211, 211, 50), 5, Qt::SolidLine));
     }
 }
-
 
 void dBgraph::setAxesScales(double xmin, double xmax, double ymin, double ymax)
 {
@@ -317,7 +301,8 @@ bool dBgraph::eventFilter(QObject *object, QEvent *event)
     if (object == canvas() && event->type() == QEvent::Resize)
     {
 
-        d_bottomHandlesArea->setLeftPadding(70);
+        d_leftHandlesArea->repaint();
+        d_bottomHandlesArea->setLeftPadding(d_leftHandlesArea->width() + 10);
         d_bottomHandlesArea->setRightPadding(80);
 
         d_hCursorHandle1->triggerMove();
@@ -336,7 +321,7 @@ QString dBgraph::getScaleValueFormat(double value, QwtAxisId scale) const
 	auto *scaleDraw = static_cast<const OscScaleDraw *>(
 				  axisScaleDraw(scale));
 
-	return formatter->format(value,
+    return d_formatter->format(value,
 				 scaleDraw->getUnitType(),
 				 scaleDraw->getFloatPrecison());
 }
@@ -347,7 +332,7 @@ QString dBgraph::getScaleValueFormat(double value, QwtAxisId scale,
     auto *scaleDraw = static_cast<const OscScaleDraw *>(
                   axisScaleDraw(scale));
 
-    return formatter->format(value,
+    return d_formatter->format(value,
                  scaleDraw->getUnitType(),
                  precision);
 
@@ -457,7 +442,7 @@ void dBgraph::setXMin(double val)
 	zoomer->setZoomBase();
 	replot();
     auto div = axisScaleDiv(QwtPlot::xTop);
-    setXaxisNumDiv((div.ticks(2)).size());
+    setXaxisNumDiv((div.ticks(2)).size() - 1);
 }
 
 void dBgraph::setXMax(double val)
@@ -470,7 +455,7 @@ void dBgraph::setXMax(double val)
 	zoomer->setZoomBase();
 	replot();
     auto div = axisScaleDiv(QwtPlot::xTop);
-    setXaxisNumDiv((div.ticks(2)).size());
+    setXaxisNumDiv((div.ticks(2)).size() - 1);
 }
 
 void dBgraph::setYMin(double val)
@@ -478,6 +463,8 @@ void dBgraph::setYMin(double val)
 	setAxisScale(QwtPlot::yLeft, val, ymax);
 	ymin = val;
 	replot();
+    d_leftHandlesArea->repaint();
+    d_topHandlesArea->repaint();
 
 	double width = xmax - xmin;
 	double height = ymax - ymin;
@@ -486,7 +473,7 @@ void dBgraph::setYMin(double val)
 
 void dBgraph::setYMax(double val)
 {
-	setAxisScale(QwtPlot::yLeft, ymin, val);
+    setAxisScale(QwtPlot::yLeft, ymin, val);
 	ymax = val;
 	replot();
 
@@ -521,11 +508,11 @@ void dBgraph::useLogFreq(bool use_log_freq)
         this->setAxisScaleEngine(QwtPlot::xTop, new QwtLogScaleEngine);
         replot();
         auto div = axisScaleDiv(QwtPlot::xTop);
-        setXaxisNumDiv((div.ticks(2)).size());
+        setXaxisNumDiv((div.ticks(2)).size() - 1);
     } else {
         auto scaleTop = new OscScaleEngine;
         scaleTop->setMajorTicksCount(9);
-        setXaxisNumDiv(9);
+        setXaxisNumDiv(8);
         this->setAxisScaleEngine(QwtPlot::xTop, scaleTop);
     }
 
@@ -604,11 +591,20 @@ bool dBgraph::addReferenceWaveformFromPlot()
 	return true;
 }
 
+QString dBgraph::formatXValue(double value, int precision) const
+{
+    return d_formatter->format(value, "Hz", precision);
+}
+
+QString dBgraph::formatYValue(double value, int precision) const
+{
+    return d_formatter->format(value,  draw_y->getUnitType(), precision);
+}
 
 void dBgraph::onVCursor1Moved(double value)
 {
 	QString text;
-    text = formatter->format(value, "Hz", 2);
+    text = d_formatter->format(value, "Hz", 2);
 
 	d_cursorReadouts->setTimeCursor1Text(text);
     text = cursorIntersection(value);
@@ -634,7 +630,7 @@ void dBgraph::onVCursor1Moved(double value)
 void dBgraph::onVCursor2Moved(double value)
 {
 	QString text;
-    text = formatter->format(value, "Hz", 2);
+    text = d_formatter->format(value, "Hz", 2);
 
 	d_cursorReadouts->setTimeCursor2Text(text);
     text = cursorIntersection(value);

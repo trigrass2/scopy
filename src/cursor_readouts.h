@@ -72,6 +72,7 @@ namespace adiscope {
         QString timeCursor1LabelText();
         void setTimeCursor2LabelText(const QString &);
         QString timeCursor2LabelText();
+        void setTimeDeltaLabelText(const QString &text);
         void setVoltageCursor1LabelText(const QString &);
         QString voltageCursor1LabelText();
         void setVoltageCursor2LabelText(const QString &);

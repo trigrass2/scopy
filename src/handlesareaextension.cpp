@@ -5,8 +5,7 @@
 #include <qwt_plot.h>
 
 #include "handles_area.hpp"
-#include "oscilloscope_plot.hpp"
-#include "dbgraph.hpp"
+#include "DisplayPlot.h"
 #include "paintersaverestore.h"
 
 using namespace adiscope;
@@ -24,7 +23,7 @@ bool XBottomRuller::draw(QPainter *painter, QWidget *owner)
 		return false;
 	}
 
-    const CapturePlot *plot = qobject_cast<CapturePlot*>(m_plot);
+    const DisplayPlot *plot = qobject_cast<DisplayPlot*>(m_plot);
     if (!plot) {
         return false;
     }
@@ -45,18 +44,17 @@ bool XBottomRuller::draw(QPainter *painter, QWidget *owner)
 
 	const double totalWidth = owner->width() - (leftP + rightP);
 	const double distBetween2Labels = totalWidth / (labels - 1);
-	const double timeBetween2Labels = (interval.maxValue() - interval.minValue()) / (labels - 1);
+    const double valueBetween2Labels = (interval.maxValue() - interval.minValue()) / (labels - 1);
 
 	// compute rectangles of labels and
 	// corresponding text
 	QVector<QRectF> labelRectangles;
 	QStringList labelTexts;
 	double midPoint = leftP;
-	double currentTime = interval.minValue();
+    double currentValue = interval.minValue();
 	for (int i = 0; i < labels; ++i) {
-        //const QString text = plot->formatter->format(currentTime,"Hz", 2);
 
-        const QString text = plot->timeScaleValueFormat(currentTime, 2);
+        const QString text = plot->formatXValue(currentValue, 2);
 
         const QSizeF textSize = QwtText(text).textSize(painter->font());
 		QRectF textRect(QPointF(0.0, 0.0), textSize);
@@ -67,7 +65,7 @@ bool XBottomRuller::draw(QPainter *painter, QWidget *owner)
 		labelTexts.push_back(text);
 
 		midPoint += distBetween2Labels;
-		currentTime += timeBetween2Labels;
+        currentValue += valueBetween2Labels;
 	}
 
 	bool allLabelsTheSame = true;
@@ -87,18 +85,15 @@ bool XBottomRuller::draw(QPainter *painter, QWidget *owner)
 		labelRectangles.clear();
 		labelTexts.clear();
 		midPoint = leftP;
-		currentTime = interval.minValue();
+        currentValue = interval.minValue();
 		for (int i = 0; i < labels; ++i) {
 			QString text;
 			if (i == midLabelTick) {
-                text = plot->timeScaleValueFormat(currentTime, 6);
-
-                //text = plot->formatter->format(currentTime,"Hz", 2);
+                text = plot->formatXValue(currentValue, 6);
 			} else {   
-                text = plot->timeScaleValueFormat(currentTime, 6);
+                text = plot->formatXValue(currentValue - (interval.minValue() + midLabelTick * valueBetween2Labels), 2);
 
-                //text = plot->formatter->format(currentTime - (interval.minValue() + midLabelTick * timeBetween2Labels), "", 2);
-				if (i > midLabelTick) {
+            if (i > midLabelTick) {
 					text = "+" + text;
 				}
 			}
@@ -112,7 +107,7 @@ bool XBottomRuller::draw(QPainter *painter, QWidget *owner)
 			labelTexts.push_back(text);
 
 			midPoint += distBetween2Labels;
-			currentTime += timeBetween2Labels;
+            currentValue += valueBetween2Labels;
 		}
 
 	}
@@ -193,7 +188,7 @@ bool XTopRuller::draw(QPainter *painter, QWidget *owner)
         return false;
     }
 
-    const dBgraph *plot = qobject_cast<dBgraph*>(m_plot);
+    const DisplayPlot *plot = qobject_cast<DisplayPlot*>(m_plot);
     if (!plot) {
         return false;
     }
@@ -210,20 +205,20 @@ bool XTopRuller::draw(QPainter *painter, QWidget *owner)
     const double leftP = area->leftPadding();
     const double rightP = area->rightPadding();
 
-    const int labels = plot->xAxisNumDiv();
+    const int labels = plot->xAxisNumDiv() + 1;
 
     const double totalWidth = owner->width() - (leftP + rightP);
     const double distBetween2Labels = totalWidth / (labels - 1);
-    const double timeBetween2Labels = (interval.maxValue() - interval.minValue()) / (labels - 1);
+    const double valueBetween2Labels = (interval.maxValue() - interval.minValue()) / (labels - 1);
 
     // compute rectangles of labels and
     // corresponding text
     QVector<QRectF> labelRectangles;
     QStringList labelTexts;
     double midPoint = leftP;
-    double currentTime = interval.minValue();
+    double currentValue = interval.minValue();
     for (int i = 0; i < labels; ++i) {
-        const QString text = plot->formatter->format(currentTime,"Hz", 2);
+        const QString text = plot->formatXValue(currentValue, 2);
 
         const QSizeF textSize = QwtText(text).textSize(painter->font());
         QRectF textRect(QPointF(0.0, 0.0), textSize);
@@ -234,7 +229,7 @@ bool XTopRuller::draw(QPainter *painter, QWidget *owner)
         labelTexts.push_back(text);
 
         midPoint += distBetween2Labels;
-        currentTime += timeBetween2Labels;
+        currentValue += valueBetween2Labels;
     }
 
     bool allLabelsTheSame = true;
@@ -254,13 +249,13 @@ bool XTopRuller::draw(QPainter *painter, QWidget *owner)
         labelRectangles.clear();
         labelTexts.clear();
         midPoint = leftP;
-        currentTime = interval.minValue();
+        currentValue = interval.minValue();
         for (int i = 0; i < labels; ++i) {
             QString text;
             if (i == midLabelTick) {
-                text = plot->formatter->format(currentTime,"Hz", 2);
+                text = plot->formatXValue(currentValue, 2);
             } else {
-                text = plot->formatter->format(currentTime - (interval.minValue() + midLabelTick * timeBetween2Labels), "", 2);
+                text= plot->formatXValue(currentValue - (interval.minValue() + midLabelTick * valueBetween2Labels), 2);
                 if (i > midLabelTick) {
                     text = "+" + text;
                 }
@@ -275,7 +270,7 @@ bool XTopRuller::draw(QPainter *painter, QWidget *owner)
             labelTexts.push_back(text);
 
             midPoint += distBetween2Labels;
-            currentTime += timeBetween2Labels;
+            currentValue += valueBetween2Labels;
         }
 
     }
@@ -346,10 +341,8 @@ bool XTopRuller::draw(QPainter *painter, QWidget *owner)
     return false;
 }
 
-
 YLeftRuller::YLeftRuller(QwtPlot *plot)
     : HandlesAreaExtension(plot) {}
-
 
 bool YLeftRuller::draw(QPainter *painter, QWidget *owner)
 {
@@ -358,8 +351,11 @@ bool YLeftRuller::draw(QPainter *painter, QWidget *owner)
         return false;
     }
 
-    //sa incerc direct din display plot candva
-    const dBgraph *plot = qobject_cast<dBgraph*>(m_plot);
+    auto width_text = QFontMetrics(painter->font()).horizontalAdvance("-XXX.XX XX");
+    if(area->width() != width_text)
+    area->setMinimumWidth(width_text);
+
+    const DisplayPlot *plot = qobject_cast<DisplayPlot*>(m_plot);
     if (!plot) {
         return false;
     }
@@ -383,7 +379,7 @@ bool YLeftRuller::draw(QPainter *painter, QWidget *owner)
     double currentValue = interval.maxValue();
 
     for (int i = 0; i < labels; ++i) {
-        const QString text = plot->formatter->format(currentValue, plot->yUnit(), 2);
+        const QString text = plot->formatYValue(currentValue, 2);
         QSizeF textSize = QwtText(text).textSize(painter->font());
         textSize.setWidth(textSize.width() + 20);
 
@@ -419,9 +415,9 @@ bool YLeftRuller::draw(QPainter *painter, QWidget *owner)
         for (int i = 0; i < labels; ++i) {
             QString text;
             if (i == midLabelTick) {
-                text = plot->formatter->format(currentValue, plot->yUnit(), 2);
+                text = plot->formatYValue(currentValue, 2);
             } else {
-                text = plot->formatter->format(currentValue - (interval.maxValue() + midLabelTick * valueBetween2Labels), plot->yUnit(), 2);
+                text = plot->formatYValue(currentValue - (interval.maxValue() + midLabelTick * valueBetween2Labels), 2);
                 if (i > midLabelTick) {
                     text = "+" + text;
                 }

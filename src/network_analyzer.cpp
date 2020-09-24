@@ -425,9 +425,11 @@ NetworkAnalyzer::NetworkAnalyzer(struct iio_context *ctx, Filter *filt,
     ui->gridLayout_plots->addWidget(m_dBgraph.topHandlesArea(), 2, 0, 1, 2);
     ui->gridLayout_plots->addWidget(m_dBgraph.leftHandlesArea(), 3, 0, 1, 1);
     ui->gridLayout_plots->addWidget(&m_dBgraph, 3, 1, 1, 1);
+
     ui->gridLayout_plots->addWidget(m_phaseGraph.topHandlesArea(), 4, 0, 1, 2);
     ui->gridLayout_plots->addWidget(m_phaseGraph.leftHandlesArea(), 5, 0, 1, 1);
     ui->gridLayout_plots->addWidget(&m_phaseGraph, 5, 1, 1, 1);
+
     ui->gridLayout_plots->addWidget(m_dBgraph.bottomHandlesArea(), 6, 0, 1, 2);
 
     m_phaseGraph.enableXaxisLabels();
@@ -847,15 +849,6 @@ void NetworkAnalyzer::rightMenuFinished(bool opened)
 
 void NetworkAnalyzer::showEvent(QShowEvent *event)
 {
-//    m_dBgraph.bottomHandlesArea()->setLeftPadding(m_dBgraph.axisWidget(QwtAxisId(
-//            QwtPlot::yLeft, 0))->width()
-//                        + ui->gridLayout_plots->margin()
-//                        + ui->widgetPlotContainer->layout()->margin() + 1);
-//    int rightPadding = 0;
-//    rightPadding = rightPadding + m_dBgraph.width()
-//               - m_dBgraph.axisWidget(QwtPlot::yLeft)->width() - m_dBgraph.canvas()->width()
-//               - ui->widgetPlotContainer->layout()->margin() ;
-//    m_dBgraph.bottomHandlesArea()->setRightPadding(rightPadding);
     Tool::showEvent(event);
 }
 

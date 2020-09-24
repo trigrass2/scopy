@@ -259,6 +259,10 @@ QString CursorReadouts::timeCursor2LabelText(){
     return ui->cursorT2label->text();
 }
 
+void CursorReadouts::setTimeDeltaLabelText(const QString &text){
+    ui->timeDeltaLabel->setText(text);
+}
+
 void CursorReadouts::setVoltageCursor1LabelText(const QString &text){
     ui->cursorV1label->setText(text);
 }

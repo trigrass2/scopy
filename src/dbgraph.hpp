@@ -99,9 +99,9 @@ public:
 
     void enableXaxisLabels();
     void enableYaxisLabels();
-    QWidget *leftHandlesArea();
-    QWidget *topHandlesArea();
-    PrefixFormatter *formatter;
+    QString formatXValue(double value, int precision) const;
+    QString formatYValue(double value, int precision) const;
+
 
     void replot();
 Q_SIGNALS:
@@ -160,8 +160,6 @@ private:
 	bool log_freq;
 	bool delta_label;
 	bool d_plotBarEnabled;
-    VertHandlesArea *d_leftHandlesArea;
-    HorizHandlesArea *d_topHandlesArea;
 
     OscScaleDraw *draw_x, *draw_y;
 
@@ -172,6 +170,7 @@ private:
 
 	VertBar *d_plotBar;
 	VertBar *d_frequencyBar;
+    PrefixFormatter *d_formatter;
 
     void setupVerticalBars();
 	void setupReadouts();

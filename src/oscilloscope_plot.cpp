@@ -40,9 +40,9 @@ using namespace adiscope;
 /*
  * OscilloscopePlot class
  */
-OscilloscopePlot::OscilloscopePlot(QWidget *parent,
+OscilloscopePlot::OscilloscopePlot(QWidget *parent, bool isdBgraph,
 			unsigned int xNumDivs, unsigned int yNumDivs):
-	TimeDomainDisplayPlot(parent, xNumDivs, yNumDivs)
+    TimeDomainDisplayPlot(parent, isdBgraph, xNumDivs, yNumDivs)
 {
 	setYaxisUnit("V");
 
@@ -59,9 +59,9 @@ OscilloscopePlot::~OscilloscopePlot()
 /*
  * CapturePlot class
  */
-CapturePlot::CapturePlot(QWidget *parent,
+CapturePlot::CapturePlot(QWidget *parent,  bool isdBgraph,
 			 unsigned int xNumDivs, unsigned int yNumDivs):
-	OscilloscopePlot(parent, xNumDivs, yNumDivs),
+    OscilloscopePlot(parent, isdBgraph, xNumDivs, yNumDivs),
 	d_triggerAEnabled(false),
 	d_triggerBEnabled(false),
 	d_measurementsEnabled(false),
@@ -94,17 +94,16 @@ CapturePlot::CapturePlot(QWidget *parent,
 
     /* Adjacent areas */
 	d_topWidget = new QWidget(this);
-	d_topHandlesArea = new GateHandlesArea(this->canvas());
-	d_leftHandlesArea = new VertHandlesArea(this->canvas());
+    d_topGateHandlesArea = new GateHandlesArea(this->canvas());
 
 	d_topWidget->setStyleSheet("QWidget {background-color: transparent}");
 	d_topWidget->setMinimumHeight(50);
-	d_topHandlesArea->setMinimumHeight(20);
-	d_topHandlesArea->setLargestChildWidth(80);
+    d_topGateHandlesArea->setMinimumHeight(20);
+    d_topGateHandlesArea->setLargestChildWidth(80);
 	d_leftHandlesArea->setMinimumWidth(50);
 	d_leftHandlesArea->setMinimumHeight(this->minimumHeight());
 
-	d_topHandlesArea->hide();
+    d_topGateHandlesArea->hide();
 	/* Add content to the top area of the plot */
 	// Time Base
 	d_timeBaseLabel = new QLabel(this);
@@ -263,11 +262,11 @@ CapturePlot::CapturePlot(QWidget *parent,
 	/* Measurement gate cursors */
 	d_hGatingHandle1 = new PlotGateHandle(
 				QPixmap(":/icons/gate_handle.svg"),
-				d_topHandlesArea);
+                d_topGateHandlesArea);
 
 	d_hGatingHandle2 = new PlotGateHandle(
 				QPixmap(":/icons/gate_handle.svg"),
-				d_topHandlesArea);
+                d_topGateHandlesArea);
 
 	d_hGatingHandle1->setCenterLeft(false);
 
@@ -393,18 +392,25 @@ CapturePlot::CapturePlot(QWidget *parent,
 
 CapturePlot::~CapturePlot()
 {
-//	markerIntersection1->detach();
-//	markerIntersection2->detach();
+    canvas()->removeEventFilter(d_cursorReadouts);
 	removeEventFilter(this);
 	canvas()->removeEventFilter(d_symbolCtrl);
-//	delete markerIntersection1;
-//	delete markerIntersection2;
 	for (auto it = d_measureObjs.begin(); it != d_measureObjs.end(); ++it) {
 		delete *it;
 	}
 	delete graticule;
 	delete leftGate;
 	delete rightGate;
+}
+
+QString CapturePlot::formatXValue(double value, int precision) const
+{
+    return d_cursorTimeFormatter.format(value, "", precision);
+}
+
+QString CapturePlot::formatYValue(double value, int precision) const
+{
+    return d_cursorMetricFormatter.format(value, "", precision);
 }
 
 void CapturePlot::replot()
@@ -662,12 +668,7 @@ QWidget * CapturePlot::topArea()
 QWidget * CapturePlot::topHandlesArea()
 {
     /* handle area for gate cursors */
-	return d_topHandlesArea;
-}
-
-QWidget * CapturePlot::leftHandlesArea()
-{
-	return d_leftHandlesArea;
+    return d_topGateHandlesArea;
 }
 
 void CapturePlot::setBonusWidthForHistogram(int width)
@@ -884,7 +885,7 @@ void CapturePlot::setGatingEnabled(bool enabled){
 		if(enabled){
 			leftGate->attach(this);
 			rightGate->attach(this);
-			d_topHandlesArea->show();
+            d_topGateHandlesArea->show();
 			//update handle
 			onGateBar1Moved(leftGateRect.right());
 			onGateBar2Moved(rightGateRect.left());
@@ -892,7 +893,7 @@ void CapturePlot::setGatingEnabled(bool enabled){
 		else{
 			leftGate->detach();
 			rightGate->detach();
-			d_topHandlesArea->hide();
+            d_topGateHandlesArea->hide();
 		}
 		for (int i = 0; i < d_measureObjs.size(); i++) {
 			Measure *measure = d_measureObjs[i];
@@ -950,34 +951,34 @@ void CapturePlot::updateHandleAreaPadding(bool enabled)
 
 	if (enabled) {
 		d_bottomHandlesArea->setLeftPadding(50 + axisWidget(QwtAxisId(QwtPlot::yLeft, d_activeVertAxis))->width());
-		d_topHandlesArea->setLeftPadding(90 + axisWidget(QwtAxisId(QwtPlot::yLeft, d_activeVertAxis))->width());
+        d_topGateHandlesArea->setLeftPadding(90 + axisWidget(QwtAxisId(QwtPlot::yLeft, d_activeVertAxis))->width());
 		QwtScaleWidget *scaleWidget = axisWidget(QwtPlot::xBottom);
 		const int fmw = QFontMetrics(scaleWidget->font()).width("-XX.XX XX");
 		const int fmh = QFontMetrics(scaleWidget->font()).height();
 		d_bottomHandlesArea->setRightPadding(50 + fmw/2 + d_bonusWidth);
-		d_topHandlesArea->setRightPadding(50 + fmw/2 + d_bonusWidth);
+        d_topGateHandlesArea->setRightPadding(50 + fmw/2 + d_bonusWidth);
 		d_rightHandlesArea->setTopPadding(50 + 6);
 		d_rightHandlesArea->setBottomPadding(50 + fmh);
 		QMargins margins = d_topWidget->layout()->contentsMargins();
 		margins.setLeft(d_leftHandlesArea->minimumWidth()+100);
 		d_topWidget->layout()->setContentsMargins(margins);
 	} else {
-		if(d_topHandlesArea->leftPadding() != 90)
-			d_topHandlesArea->setLeftPadding(90);
-		if(d_topHandlesArea->rightPadding() != 90)
-			d_topHandlesArea->setRightPadding(90);
+        if(d_topGateHandlesArea->leftPadding() != 90)
+            d_topGateHandlesArea->setLeftPadding(90);
+        if(d_topGateHandlesArea->rightPadding() != 90)
+            d_topGateHandlesArea->setRightPadding(90);
 		if (d_bottomHandlesArea->leftPadding() != 50 + xAxisBonusWidth)
 			d_bottomHandlesArea->setLeftPadding(50 + xAxisBonusWidth);
 		if (d_bottomHandlesArea->rightPadding() != 50 + d_bonusWidth + xAxisBonusWidth)
 			d_bottomHandlesArea->setRightPadding(50 + d_bonusWidth + xAxisBonusWidth);
-		if (d_rightHandlesArea->topPadding() != 50)
-			d_rightHandlesArea->setTopPadding(50);
+        if (d_rightHandlesArea->topPadding() != 50)
+            d_rightHandlesArea->setTopPadding(50);
 		if (d_rightHandlesArea->bottomPadding() != 50)
 			d_rightHandlesArea->setBottomPadding(50);
 
-		int topPadding = d_gatingEnabled ? d_topHandlesArea->height() : 0;
+        int topPadding = d_gatingEnabled ? d_topGateHandlesArea->height() : 0;
 		d_leftHandlesArea->setTopPadding(50 + topPadding);
-		d_rightHandlesArea->setTopPadding(50 + topPadding);
+        d_rightHandlesArea->setTopPadding(50 + topPadding);
 
 		QMargins margins = d_topWidget->layout()->contentsMargins();
 		margins.setLeft(d_leftHandlesArea->minimumWidth());
@@ -1016,6 +1017,9 @@ bool CapturePlot::eventFilter(QObject *object, QEvent *event)
         d_hCursorHandle2->triggerMove();
         d_vCursorHandle1->triggerMove();
         d_vCursorHandle2->triggerMove();
+        d_timeTriggerHandle->triggerMove();
+        d_levelTriggerAHandle->triggerMove();
+        d_levelTriggerBHandle->triggerMove();
 
 		/* update the size of the gates when the plot canvas is resized */
 		updateGateMargins();
